@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Homework - Launch and EC2 using CloudFormation
+
+Parameters:
+  
+  environment:
+    Type: String
+    Default: development
+    AllowedValues:
+      - production
+      - development
+  owner:
+    Type: String
+    Default: "Mozees"
+  ownerEmail:
+    Type: String
+    Default: momaejalile@gmail.com
+  
+  instanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.nano
+      - m1.small
+      - m1.large
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+  
+  networkStack:
+    Type: String
+    Description: NetworkStack
+    Default: SampleNetworkCrossStack
+       
+  KeyName:
+    Type: "AWS::EC2::KeyPair::KeyName"
+   
+Mappings:
+  RegionMap:
+    us-east-1:
+      web: ami-0b0dcb5067f052a63
+      app: ami-02b972fec07f1e659
+    us-west-1:
+      web: ami-0f5e8a042c8bfcd5e
+      app: ami-0e587da169af43ce1
+    us-west-2:
+      web: ami-094125af156557ca2
+      app: ami-08e4eaf54ff5ee95e
+    ca-central-1:
+      web: ami-0ee679ef733e3b8e7
+      app: ami-017f4811a06d3e510
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", web]
+      InstanceType: !Ref instanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - Fn::ImportValue: 
+            !Sub "${networkStack}-SecurityGroupID"
+      SubnetId: 
+        Fn::ImportValue:
+          !Sub "${networkStack}-SubnetID"
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo '<center><h1 style="color:blue;font-size:300%;border:2px solid blue;background-color:lightgrey;">IaC with CloudFormation: Homework 3 </h1></center>' > /var/www/html/index.html
+          
+      Tags: 
+        - Key: environment
+          Value: !Ref environment
+        - Key: owner
+          Value: !Ref owner
+        - Key: ownerEmail
+          Value: !Ref ownerEmail
+  MyEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref MyEC2Instance
+   
+Outputs:
+  InstanceId:
+    Value: !Ref MyEC2Instance
+    Export:
+      Name: !Sub '${AWS::StackName}-id'
+  dnsName:
+    Value: !GetAtt MyEC2Instance.PrivateDnsName
+    Export:
+      Name: !Sub '${AWS::StackName}-private-dnsname'
+  publicIp:
+    Value: !GetAtt MyEC2Instance.PublicIp
+    Export:
+      Name: !Sub '${AWS::StackName}-public-dnsname'
