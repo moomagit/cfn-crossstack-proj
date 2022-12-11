@@ -86,13 +86,7 @@ Resources:
 Outputs:
   InstanceId:
     Value: !Ref MyEC2Instance
-    Export:
-      Name: !Sub '${AWS::StackName}-id'
   dnsName:
     Value: !GetAtt MyEC2Instance.PrivateDnsName
-    Export:
-      Name: !Sub '${AWS::StackName}-private-dnsname'
   publicIp:
     Value: !GetAtt MyEC2Instance.PublicIp
-    Export:
-      Name: !Sub '${AWS::StackName}-public-dnsname'
